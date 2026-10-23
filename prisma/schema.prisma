@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  sessions     Session[]
+  accounts     RedditAccount[]
+  subreddits   Subreddit[]
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RedditAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  username  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts     Post[]
+
+  @@unique([userId, username])
+}
+
+enum SubredditKind {
+  MAIN
+  CROSSPOST
+}
+
+model Subreddit {
+  id        String         @id @default(cuid())
+  userId    String
+  // Lowercased for lookups; `displayName` keeps the casing from the first link seen.
+  name        String
+  displayName String
+  // Null until the user answers "what kind of subreddit is this?"
+  kind      SubredditKind?
+  createdAt DateTime       @default(now())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts     Post[]
+  // A main subreddit links to the crosspost subreddits its posts get shared to.
+  crosspostLinks SubredditLink[] @relation("MainLinks")
+  mainLinks      SubredditLink[] @relation("CrosspostLinks")
+
+  @@unique([userId, name])
+}
+
+model SubredditLink {
+  mainId      String
+  crosspostId String
+  createdAt   DateTime  @default(now())
+  main        Subreddit @relation("MainLinks", fields: [mainId], references: [id], onDelete: Cascade)
+  crosspost   Subreddit @relation("CrosspostLinks", fields: [crosspostId], references: [id], onDelete: Cascade)
+
+  @@id([mainId, crosspostId])
+}
+
+model Post {
+  id          String        @id @default(cuid())
+  accountId   String
+  subredditId String
+  url         String
+  postedAt    DateTime
+  createdAt   DateTime      @default(now())
+  account     RedditAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  subreddit   Subreddit     @relation(fields: [subredditId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, url])
+  @@index([accountId, postedAt])
+}
