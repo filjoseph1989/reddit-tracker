@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
-  allowedDevOrigins: ["reddit-tracker.test"],
+  // Also allow other devices on the local network (e.g. http://192.168.1.21:3006).
+  allowedDevOrigins: ["reddit-tracker.test", "192.168.1.*"],
   experimental: {
     serverActions: {
       allowedOrigins: ["reddit-tracker.test"],
