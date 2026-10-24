@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConfirmSubmitButton, LocalTime, SafeStatus } from "@/components/client";
+import { RecentDraftsWidget, type SerializedDraft } from "@/components/drafts-client";
 import { LogPostForm } from "@/components/log-post-form";
 import { requireUser } from "@/lib/auth";
 import { accountsWithSafety } from "@/lib/data";
+import { db } from "@/lib/db";
 import { RULES } from "@/lib/safety";
 import { deleteAccount, deletePost } from "../../actions";
 
@@ -16,7 +18,19 @@ type AccountPageProps = {
 export default async function AccountDetailPage({ params }: AccountPageProps) {
   const { id } = await params;
   const user = await requireUser();
-  const accounts = await accountsWithSafety(user.id, id);
+  const [accounts, accountDrafts, subreddits] = await Promise.all([
+    accountsWithSafety(user.id, id),
+    db.draft.findMany({
+      where: { userId: user.id, accountId: id },
+      orderBy: { updatedAt: "desc" },
+      include: { account: { select: { id: true, username: true } } },
+    }),
+    db.subreddit.findMany({
+      where: { userId: user.id },
+      orderBy: { displayName: "asc" },
+      select: { id: true, name: true, displayName: true },
+    }),
+  ]);
   const account = accounts[0];
 
   if (!account) {
@@ -24,6 +38,20 @@ export default async function AccountDetailPage({ params }: AccountPageProps) {
   }
 
   const { safety } = account;
+
+  const serializedDrafts: SerializedDraft[] = accountDrafts.map((d) => ({
+    id: d.id,
+    userId: d.userId,
+    title: d.title,
+    body: d.body,
+    linkUrl: d.linkUrl,
+    targetSubreddit: d.targetSubreddit,
+    accountId: d.accountId,
+    notes: d.notes,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+    account: d.account,
+  }));
 
   return (
     <div className="space-y-8">
@@ -172,6 +200,15 @@ export default async function AccountDetailPage({ params }: AccountPageProps) {
         </div>
         <LogPostForm accounts={[{ id: account.id, username: account.username }]} />
       </div>
+
+      {/* Drafts for this account */}
+      <RecentDraftsWidget
+        drafts={serializedDrafts}
+        accounts={[{ id: account.id, username: account.username }]}
+        subreddits={subreddits}
+        title={`Saved Drafts for u/${account.username}`}
+        viewAllHref="/drafts"
+      />
 
       {/* Post History */}
       <div className="card space-y-4">

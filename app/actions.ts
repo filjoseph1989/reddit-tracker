@@ -158,6 +158,106 @@ export async function deleteSubreddit(subredditId: string) {
   refresh();
 }
 
+// ---- Drafts ----
+
+export async function createDraft(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const title = text(form, "title");
+  if (!title) return { error: "Enter a title for the draft." };
+  if (title.length > 300) return { error: "Reddit titles cannot exceed 300 characters." };
+
+  const body = text(form, "body") || null;
+  const linkUrl = text(form, "linkUrl") || null;
+  if (linkUrl) {
+    try {
+      new URL(linkUrl);
+    } catch {
+      return { error: "Enter a valid URL for the link (e.g. https://example.com)." };
+    }
+  }
+
+  const targetSubreddit = text(form, "targetSubreddit").replace(/^\/?r\//i, "").trim() || null;
+  const rawAccountId = text(form, "accountId");
+  let accountId: string | null = null;
+  if (rawAccountId) {
+    const acc = await db.redditAccount.findFirst({ where: { id: rawAccountId, userId: user.id } });
+    if (acc) accountId = acc.id;
+  }
+  const notes = text(form, "notes") || null;
+
+  await db.draft.create({
+    data: {
+      userId: user.id,
+      title,
+      body,
+      linkUrl,
+      targetSubreddit,
+      accountId,
+      notes,
+    },
+  });
+
+  const next = text(form, "next");
+  if (next && next.startsWith("/")) {
+    redirect(next);
+  }
+  refresh();
+}
+
+export async function updateDraft(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const id = text(form, "id");
+  const draft = await db.draft.findFirst({ where: { id, userId: user.id } });
+  if (!draft) return { error: "Draft not found." };
+
+  const title = text(form, "title");
+  if (!title) return { error: "Enter a title for the draft." };
+  if (title.length > 300) return { error: "Reddit titles cannot exceed 300 characters." };
+
+  const body = text(form, "body") || null;
+  const linkUrl = text(form, "linkUrl") || null;
+  if (linkUrl) {
+    try {
+      new URL(linkUrl);
+    } catch {
+      return { error: "Enter a valid URL for the link (e.g. https://example.com)." };
+    }
+  }
+
+  const targetSubreddit = text(form, "targetSubreddit").replace(/^\/?r\//i, "").trim() || null;
+  const rawAccountId = text(form, "accountId");
+  let accountId: string | null = null;
+  if (rawAccountId) {
+    const acc = await db.redditAccount.findFirst({ where: { id: rawAccountId, userId: user.id } });
+    if (acc) accountId = acc.id;
+  }
+  const notes = text(form, "notes") || null;
+
+  await db.draft.update({
+    where: { id: draft.id },
+    data: {
+      title,
+      body,
+      linkUrl,
+      targetSubreddit,
+      accountId,
+      notes,
+    },
+  });
+
+  const next = text(form, "next");
+  if (next && next.startsWith("/")) {
+    redirect(next);
+  }
+  refresh();
+}
+
+export async function deleteDraft(draftId: string) {
+  const user = await requireUser();
+  await db.draft.deleteMany({ where: { id: draftId, userId: user.id } });
+  refresh();
+}
+
 /**
  * When a crosspost is logged, link its subreddit to the main subreddit of the
  * same account's most recent original post (within the previous 24 hours).
