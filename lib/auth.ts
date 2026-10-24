@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { db } from "./db";
 
 const COOKIE = "session";
@@ -31,6 +32,7 @@ export async function endSession() {
 }
 
 export async function currentUser() {
+  await connection();
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const session = await db.session.findUnique({ where: { id: hashToken(token) }, include: { user: true } });

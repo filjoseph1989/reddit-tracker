@@ -1,8 +1,10 @@
 import "server-only";
+import { connection } from "next/server";
 import { db } from "./db";
 import { computeSafety } from "./safety";
 
 export async function accountsWithSafety(userId: string, accountId?: string) {
+  await connection();
   const accounts = await db.redditAccount.findMany({
     where: { userId, ...(accountId && { id: accountId }) },
     orderBy: { createdAt: "asc" },
