@@ -8,7 +8,6 @@ import {
   SubmitButton,
   TrashIcon,
 } from "@/components/client";
-import { RecentDraftsWidget, type SerializedDraft } from "@/components/drafts-client";
 import { CommentActivityBadge } from "@/components/comment-activity";
 import { LogCommentForm } from "@/components/log-comment-form";
 import { LogPostForm } from "@/components/log-post-form";
@@ -22,7 +21,7 @@ export const instant = false;
 
 export default async function HomePage() {
   const user = await requireUser();
-  const [accounts, unclassifiedSubreddits, recentPosts, recentDrafts, subreddits] = await Promise.all([
+  const [accounts, unclassifiedSubreddits, recentPosts] = await Promise.all([
     accountsWithSafety(user.id),
     db.subreddit.findMany({
       // Only subreddits with posts need classifying; comment-only ones don't.
@@ -35,36 +34,11 @@ export default async function HomePage() {
       take: 10,
       include: { account: true, subreddit: true },
     }),
-    db.draft.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: "desc" },
-      take: 3,
-      include: { account: { select: { id: true, username: true } } },
-    }),
-    db.subreddit.findMany({
-      where: { userId: user.id },
-      orderBy: { displayName: "asc" },
-      select: { id: true, name: true, displayName: true },
-    }),
   ]);
 
   const readyCount = accounts.filter((a) => a.safety.safeNow).length;
   const cooldownCount = accounts.length - readyCount;
   const totalPosts24h = accounts.reduce((acc, a) => acc + a.safety.postsLast24h, 0);
-
-  const serializedDrafts: SerializedDraft[] = recentDrafts.map((d) => ({
-    id: d.id,
-    userId: d.userId,
-    title: d.title,
-    body: d.body,
-    linkUrl: d.linkUrl,
-    targetSubreddit: d.targetSubreddit,
-    accountId: d.accountId,
-    notes: d.notes,
-    createdAt: d.createdAt.toISOString(),
-    updatedAt: d.updatedAt.toISOString(),
-    account: d.account,
-  }));
 
   return (
     <div className="space-y-8">
@@ -112,27 +86,6 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* Log Post Card (when accounts exist) */}
-      {accounts.length > 0 && (
-        <div className="card shadow-sm border-zinc-200 dark:border-zinc-800">
-          <div className="mb-3">
-            <h2 className="text-base font-semibold">Log a Post</h2>
-            <p className="muted text-xs">
-              Paste the Reddit post URL. The subreddit is automatically detected and the account’s safe interval updates immediately.
-            </p>
-          </div>
-          <LogPostForm accounts={accounts.map((a) => ({ id: a.id, username: a.username }))} />
-
-          <div className="mt-5 mb-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-            <h2 className="text-base font-semibold">Log a Comment</h2>
-            <p className="muted text-xs">
-              Paste the link to your comment. Comments don’t affect post timing, but a bot-like commenting pace is flagged.
-            </p>
-          </div>
-          <LogCommentForm accounts={accounts.map((a) => ({ id: a.id, username: a.username }))} />
-        </div>
-      )}
-
       {/* Summary Metrics */}
       {accounts.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -152,6 +105,27 @@ export default async function HomePage() {
             <p className="muted text-xs uppercase tracking-wider">24h Total Posts</p>
             <p className="mt-1 text-2xl font-bold">{totalPosts24h}</p>
           </div>
+        </div>
+      )}
+
+      {/* Log Post Card (when accounts exist) */}
+      {accounts.length > 0 && (
+        <div className="card shadow-sm border-zinc-200 dark:border-zinc-800">
+          <div className="mb-3">
+            <h2 className="text-base font-semibold">Log a Post</h2>
+            <p className="muted text-xs">
+              Paste the Reddit post URL. The subreddit is automatically detected and the account’s safe interval updates immediately.
+            </p>
+          </div>
+          <LogPostForm accounts={accounts.map((a) => ({ id: a.id, username: a.username }))} />
+
+          <div className="mt-5 mb-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+            <h2 className="text-base font-semibold">Log a Comment</h2>
+            <p className="muted text-xs">
+              Paste the link to your comment. Comments don’t affect post timing, but a bot-like commenting pace is flagged.
+            </p>
+          </div>
+          <LogCommentForm accounts={accounts.map((a) => ({ id: a.id, username: a.username }))} />
         </div>
       )}
 
@@ -354,13 +328,6 @@ export default async function HomePage() {
           </div>
         </div>
       )}
-
-      {/* Draft Posts Widget */}
-      <RecentDraftsWidget
-        drafts={serializedDrafts}
-        accounts={accounts.map((a) => ({ id: a.id, username: a.username }))}
-        subreddits={subreddits}
-      />
 
       {/* Recent Activity Feed */}
       {recentPosts.length > 0 && (
