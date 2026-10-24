@@ -7,12 +7,12 @@ async function seed() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
-  const email = "user@example.com";
+  const email = "admin@reddit-tracker.test";
   const password = "password123";
   const passwordHash = await bcrypt.hash(password, 12);
 
   const res = await client.query(
-    `INSERT INTO "user" (id, email, "passwordHash", "createdAt")
+    `INSERT INTO "users" (id, email, "passwordHash", "createdAt")
      VALUES ($1, $2, $3, NOW())
      ON CONFLICT (email) DO UPDATE SET "passwordHash" = $3
      RETURNING id, email;`,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ActionForm, ConfirmSubmitButton, LocalTime, SafeStatus, SubmitButton } from "@/components/client";
+import { RecentDraftsWidget, type SerializedDraft } from "@/components/drafts-client";
 import { LogPostForm } from "@/components/log-post-form";
 import { requireUser } from "@/lib/auth";
 import { accountsWithSafety } from "@/lib/data";
@@ -11,7 +12,7 @@ export const instant = false;
 
 export default async function HomePage() {
   const user = await requireUser();
-  const [accounts, unclassifiedSubreddits, recentPosts] = await Promise.all([
+  const [accounts, unclassifiedSubreddits, recentPosts, recentDrafts, subreddits] = await Promise.all([
     accountsWithSafety(user.id),
     db.subreddit.findMany({
       where: { userId: user.id, kind: null },
@@ -23,11 +24,36 @@ export default async function HomePage() {
       take: 10,
       include: { account: true, subreddit: true },
     }),
+    db.draft.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 3,
+      include: { account: { select: { id: true, username: true } } },
+    }),
+    db.subreddit.findMany({
+      where: { userId: user.id },
+      orderBy: { displayName: "asc" },
+      select: { id: true, name: true, displayName: true },
+    }),
   ]);
 
   const readyCount = accounts.filter((a) => a.safety.safeNow).length;
   const cooldownCount = accounts.length - readyCount;
   const totalPosts24h = accounts.reduce((acc, a) => acc + a.safety.postsLast24h, 0);
+
+  const serializedDrafts: SerializedDraft[] = recentDrafts.map((d) => ({
+    id: d.id,
+    userId: d.userId,
+    title: d.title,
+    body: d.body,
+    linkUrl: d.linkUrl,
+    targetSubreddit: d.targetSubreddit,
+    accountId: d.accountId,
+    notes: d.notes,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+    account: d.account,
+  }));
 
   return (
     <div className="space-y-8">
@@ -299,6 +325,13 @@ export default async function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Draft Posts Widget */}
+      <RecentDraftsWidget
+        drafts={serializedDrafts}
+        accounts={accounts.map((a) => ({ id: a.id, username: a.username }))}
+        subreddits={subreddits}
+      />
 
       {/* Recent Activity Feed */}
       {recentPosts.length > 0 && (

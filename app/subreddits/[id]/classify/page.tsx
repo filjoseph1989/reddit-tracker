@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SubmitButton } from "@/components/client";
+import { ClassifyForm } from "@/components/classify-form";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { classifySubreddit } from "../../../actions";
 
 export const instant = false;
 
@@ -32,6 +31,34 @@ export default async function ClassifySubredditPage({ params, searchParams }: Cl
   if (!subreddit) {
     notFound();
   }
+
+  // For a post just logged here: the logged posts it could have been crossposted from.
+  const [candidates, accounts] = post
+    ? await Promise.all([
+        db.post.findMany({
+          where: { account: { userId: user.id }, id: { not: post.id }, subredditId: { not: subreddit.id } },
+          orderBy: { postedAt: "desc" },
+          take: 50,
+          include: { account: true, subreddit: true },
+        }),
+        db.redditAccount.findMany({
+          where: { userId: user.id },
+          orderBy: { username: "asc" },
+          select: { id: true, username: true },
+        }),
+      ])
+    : [[], []];
+
+  // Preselect the saved original, else the latest main-subreddit post from the 24 hours before.
+  const defaultOriginal =
+    candidates.find((c) => c.id === post?.originalPostId) ??
+    candidates.find(
+      (c) =>
+        post &&
+        c.subreddit.kind === "MAIN" &&
+        c.postedAt <= post.postedAt &&
+        c.postedAt.getTime() >= post.postedAt.getTime() - 86_400_000,
+    );
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
@@ -65,72 +92,21 @@ export default async function ClassifySubredditPage({ params, searchParams }: Cl
           </div>
         )}
 
-        <form action={classifySubreddit} className="space-y-4">
-          <input type="hidden" name="subredditId" value={subreddit.id} />
-          <input type="hidden" name="postId" value={postId ?? ""} />
-          <input type="hidden" name="next" value={next ?? ""} />
-
-          <div className="space-y-3">
-            {/* Option 1: Main */}
-            <label className="flex items-start gap-3 rounded-xl border border-zinc-200 p-4 cursor-pointer hover:border-orange-500 hover:bg-orange-50/20 transition dark:border-zinc-800 dark:hover:border-orange-500/50">
-              <input
-                type="radio"
-                name="kind"
-                value="MAIN"
-                defaultChecked={subreddit.kind === "MAIN" || !subreddit.kind}
-                className="mt-1 h-4 w-4 text-orange-600 accent-orange-600"
-                required
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
-                    Main Subreddit
-                  </span>
-                  <span className="pill bg-blue-100 text-blue-800 text-[10px] dark:bg-blue-950 dark:text-blue-300">
-                    Original Posts
-                  </span>
-                </div>
-                <p className="muted text-xs mt-1">
-                  Where you regularly make original posts. This serves as your primary content source. Subsequent crossposts within 24 hours will automatically link back to this subreddit.
-                </p>
-              </div>
-            </label>
-
-            {/* Option 2: Crosspost */}
-            <label className="flex items-start gap-3 rounded-xl border border-zinc-200 p-4 cursor-pointer hover:border-orange-500 hover:bg-orange-50/20 transition dark:border-zinc-800 dark:hover:border-orange-500/50">
-              <input
-                type="radio"
-                name="kind"
-                value="CROSSPOST"
-                defaultChecked={subreddit.kind === "CROSSPOST"}
-                className="mt-1 h-4 w-4 text-orange-600 accent-orange-600"
-                required
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
-                    Crosspost Subreddit
-                  </span>
-                  <span className="pill bg-purple-100 text-purple-800 text-[10px] dark:bg-purple-950 dark:text-purple-300">
-                    Crossposts Only
-                  </span>
-                </div>
-                <p className="muted text-xs mt-1">
-                  Where you only crosspost existing submissions. The tracker connects this community to the main subreddit from which the post was originally shared.
-                </p>
-              </div>
-            </label>
-          </div>
-
-          <div className="pt-2 flex items-center justify-end gap-3">
-            <Link href={next || "/subreddits"} className="btn-secondary">
-              Cancel
-            </Link>
-            <SubmitButton className="btn-primary">
-              Save Classification
-            </SubmitButton>
-          </div>
-        </form>
+        <ClassifyForm
+          subredditId={subreddit.id}
+          initialKind={subreddit.kind}
+          postId={post?.id}
+          next={next}
+          candidates={candidates.map((c) => ({
+            id: c.id,
+            url: c.url,
+            username: c.account.username,
+            subreddit: c.subreddit.displayName,
+            postedAt: c.postedAt.toISOString(),
+          }))}
+          defaultOriginalId={defaultOriginal?.id}
+          accounts={accounts}
+        />
       </div>
     </div>
   );

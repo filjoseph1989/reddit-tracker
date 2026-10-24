@@ -137,12 +137,12 @@ Open your browser and navigate to:
 1. When visiting `http://localhost:3000` unauthenticated, you will be redirected to [`/login`](http://localhost:3000/login).
 2. Click **Create one** or go to [`/register`](http://localhost:3000/register).
 3. Register a test account:
-   - **Email**: `user@example.com`
+   - **Email**: `admin@reddit-tracker.test`
    - **Password**: `password123` (at least 8 characters)
 4. Click **Create account**.
 5. **Expected result**:
    - You are redirected to the main dashboard [`/`](http://localhost:3000/).
-   - The navigation header displays `Post Spacer`, `Accounts`, `Subreddits`, your email `user@example.com`, and a **Log out** button.
+   - The navigation header displays `Post Spacer`, `Accounts`, `Subreddits`, your email `admin@reddit-tracker.test`, and a **Log out** button.
    - An empty state appears: *"No Reddit accounts added yet"*, detailing the anti-spam rules.
 
 ---

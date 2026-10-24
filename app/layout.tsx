@@ -35,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
             <Link href="/" className="text-sm hover:underline">Accounts</Link>
             <Link href="/subreddits" className="text-sm hover:underline">Subreddits</Link>
+            <Link href="/drafts" className="text-sm hover:underline">Drafts</Link>
             <Suspense>
               <UserMenu />
             </Suspense>
