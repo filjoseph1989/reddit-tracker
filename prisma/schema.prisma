@@ -36,7 +36,9 @@ model RedditAccount {
   username  String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  posts     Post[]
+  posts     Post[]   @relation("AccountPosts")
+  // Crossposts whose original (untracked) post was made by this account.
+  originals Post[]   @relation("OriginalAccount")
   drafts    Draft[]
 
   @@unique([userId, username])
@@ -85,8 +87,17 @@ model Post {
   url         String
   postedAt    DateTime
   createdAt   DateTime      @default(now())
-  account     RedditAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account     RedditAccount @relation("AccountPosts", fields: [accountId], references: [id], onDelete: Cascade)
   subreddit   Subreddit     @relation(fields: [subredditId], references: [id], onDelete: Cascade)
+
+  // For a crosspost: the original post, when it's logged in the tracker...
+  originalPostId    String?
+  originalPost      Post?          @relation("Crossposts", fields: [originalPostId], references: [id], onDelete: SetNull)
+  crossposts        Post[]         @relation("Crossposts")
+  // ...or its URL (and author, if it's one of the user's accounts) when it isn't.
+  originalUrl       String?
+  originalAccountId String?
+  originalAccount   RedditAccount? @relation("OriginalAccount", fields: [originalAccountId], references: [id], onDelete: SetNull)
 
   @@unique([accountId, url])
   @@index([accountId, postedAt])
