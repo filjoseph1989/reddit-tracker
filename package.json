@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed": "node scripts/seed.cjs"
+  },
+  "prisma": {
+    "seed": "node scripts/seed.cjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

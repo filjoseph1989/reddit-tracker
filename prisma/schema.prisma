@@ -15,6 +15,8 @@ model User {
   sessions     Session[]
   accounts     RedditAccount[]
   subreddits   Subreddit[]
+
+  @@map("user")
 }
 
 model Session {
@@ -24,6 +26,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@map("session")
 }
 
 model RedditAccount {
@@ -35,6 +38,7 @@ model RedditAccount {
   posts     Post[]
 
   @@unique([userId, username])
+  @@map("reddit_account")
 }
 
 enum SubredditKind {
@@ -58,6 +62,7 @@ model Subreddit {
   mainLinks      SubredditLink[] @relation("CrosspostLinks")
 
   @@unique([userId, name])
+  @@map("subreddit")
 }
 
 model SubredditLink {
@@ -68,6 +73,7 @@ model SubredditLink {
   crosspost   Subreddit @relation("CrosspostLinks", fields: [crosspostId], references: [id], onDelete: Cascade)
 
   @@id([mainId, crosspostId])
+  @@map("subreddit_link")
 }
 
 model Post {
@@ -82,4 +88,5 @@ model Post {
 
   @@unique([accountId, url])
   @@index([accountId, postedAt])
+  @@map("post")
 }
