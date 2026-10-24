@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { ActionForm, ConfirmSubmitButton, LocalTime, SafeStatus, SubmitButton } from "@/components/client";
+import {
+  ActionForm,
+  ConfirmSubmitButton,
+  CopyIconButton,
+  LocalTime,
+  SafeStatus,
+  SubmitButton,
+  TrashIcon,
+} from "@/components/client";
 import { RecentDraftsWidget, type SerializedDraft } from "@/components/drafts-client";
 import { CommentActivityBadge } from "@/components/comment-activity";
 import { LogCommentForm } from "@/components/log-comment-form";
@@ -422,15 +430,19 @@ export default async function HomePage() {
                     <td className="py-2.5 pr-4 muted text-xs whitespace-nowrap">
                       <LocalTime iso={post.postedAt.toISOString()} />
                     </td>
-                    <td className="py-2.5 text-right">
-                      <form action={deletePost.bind(null, post.id)}>
-                        <ConfirmSubmitButton
-                          className="btn-danger text-xs"
-                          confirmMessage="Are you sure you want to delete this logged post?"
-                        >
-                          Delete
-                        </ConfirmSubmitButton>
-                      </form>
+                    <td className="py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        <CopyIconButton text={post.url} />
+                        <form action={deletePost.bind(null, post.id)}>
+                          <ConfirmSubmitButton
+                            className="btn-icon hover:!text-red-600 dark:hover:!text-red-400"
+                            confirmMessage="Are you sure you want to delete this logged post?"
+                            title="Delete post"
+                          >
+                            <TrashIcon />
+                          </ConfirmSubmitButton>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}
