@@ -1,0 +1,25 @@
+ user 
+------
+ fil
+(1 row)
+
+ id | accountId | subredditId | url | postedAt | createdAt 
+----+-----------+-------------+-----+----------+-----------
+(0 rows)
+
+            id             |    userId     |  username   |        createdAt        
+---------------------------+---------------+-------------+-------------------------
+ cmvlzks990000vcmwqhdkfug4 | cseeduser0001 | filjoseph22 | 2026-10-24 05:56:48.525
+(1 row)
+
+                                id                                |    userId     |        expiresAt        
+------------------------------------------------------------------+---------------+-------------------------
+ f795dac1d5884143cd06724635444c04ad266f381c8f4c2ed4ee2a0802e98507 | cseeduser0001 | 2026-11-22 16:13:12.352
+ 2bdef84d177936f9d7e59abb2b52de610dc951669893994ba1af6829428301de | cseeduser0001 | 2026-11-22 16:22:30.5
+ 42fb1cf965a65a06e2d2becc0f2cf152e2c5a4057f6b17bed3f464ffb2033b86 | cseeduser0001 | 2026-11-22 16:22:52.404
+ b41058fb83a6de47d42718d4933f01cd9b98c9311f6a7341112453264e7e77ed | cseeduser0001 | 2026-11-22 16:26:27.183
+ bf9d5f64d3614a970618ae71467c469dc344861f5c2b8571bd14bc22e6520b79 | cseeduser0001 | 2026-11-22 16:26:30.059
+ 063a502adb5f4eda7efd02cc8b3e7048fd4d73ddea91088d22d70c7e46b445df | cseeduser0001 | 2026-11-22 16:46:17.202
+ af0fe2e2a531ee68918952a00f00afe41aa2f4ac52248f8a17fe113635395c8b | cseeduser0001 | 2026-11-23 05:56:02.995
+(7 rows)
+
