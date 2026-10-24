@@ -12,7 +12,7 @@ async function seed() {
   const passwordHash = await bcrypt.hash(password, 12);
 
   const res = await client.query(
-    `INSERT INTO "user" (id, email, "passwordHash", "createdAt")
+    `INSERT INTO "users" (id, email, "passwordHash", "createdAt")
      VALUES ($1, $2, $3, NOW())
      ON CONFLICT (email) DO UPDATE SET "passwordHash" = $3
      RETURNING id, email;`,
