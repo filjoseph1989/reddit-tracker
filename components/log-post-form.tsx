@@ -30,7 +30,7 @@ export function LogPostForm({ accounts }: { accounts: { id: string; username: st
         </select>
       )}
       <PostedAtInput />
-      <SubmitButton>Log post</SubmitButton>
+      <SubmitButton className="btn-primary w-32">Log post</SubmitButton>
     </ActionForm>
   );
 }
