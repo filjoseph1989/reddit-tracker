@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ActionForm, ConfirmSubmitButton, LocalTime, SafeStatus, SubmitButton } from "@/components/client";
 import { RecentDraftsWidget, type SerializedDraft } from "@/components/drafts-client";
+import { CommentActivityBadge } from "@/components/comment-activity";
+import { LogCommentForm } from "@/components/log-comment-form";
 import { LogPostForm } from "@/components/log-post-form";
 import { requireUser } from "@/lib/auth";
 import { accountsWithSafety } from "@/lib/data";
@@ -15,7 +17,8 @@ export default async function HomePage() {
   const [accounts, unclassifiedSubreddits, recentPosts, recentDrafts, subreddits] = await Promise.all([
     accountsWithSafety(user.id),
     db.subreddit.findMany({
-      where: { userId: user.id, kind: null },
+      // Only subreddits with posts need classifying; comment-only ones don't.
+      where: { userId: user.id, kind: null, posts: { some: {} } },
       orderBy: { createdAt: "desc" },
     }),
     db.post.findMany({
@@ -111,6 +114,14 @@ export default async function HomePage() {
             </p>
           </div>
           <LogPostForm accounts={accounts.map((a) => ({ id: a.id, username: a.username }))} />
+
+          <div className="mt-5 mb-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+            <h2 className="text-base font-semibold">Log a Comment</h2>
+            <p className="muted text-xs">
+              Paste the link to your comment. Comments don’t affect post timing, but a bot-like commenting pace is flagged.
+            </p>
+          </div>
+          <LogCommentForm accounts={accounts.map((a) => ({ id: a.id, username: a.username }))} />
         </div>
       )}
 
@@ -201,7 +212,7 @@ export default async function HomePage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             {accounts.map((account) => {
-              const { safety } = account;
+              const { safety, commentActivity } = account;
               return (
                 <div
                   key={account.id}
@@ -254,6 +265,16 @@ export default async function HomePage() {
                         <p className="muted text-xs">Total posts logged</p>
                         <p className="font-medium mt-0.5">{account.posts.length}</p>
                       </div>
+                    </div>
+
+                    {/* Comment pace */}
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2 text-xs dark:bg-zinc-800/40">
+                      <span>
+                        <span className="muted">Comments:</span>{" "}
+                        <span className="font-medium">{commentActivity.lastHour}</span> in 1h ·{" "}
+                        <span className="font-medium">{commentActivity.last24h}</span> in 24h
+                      </span>
+                      <CommentActivityBadge level={commentActivity.level} />
                     </div>
 
                     {/* Reasons / explanations */}

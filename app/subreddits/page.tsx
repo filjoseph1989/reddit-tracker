@@ -25,7 +25,8 @@ export default async function SubredditsPage() {
     orderBy: { name: "asc" },
   });
 
-  const unclassified = subreddits.filter((s) => !s.kind);
+  // Subreddits you've only commented in have nothing to classify.
+  const unclassified = subreddits.filter((s) => !s.kind && s.posts.length > 0);
   const mainSubreddits = subreddits.filter((s) => s.kind === "MAIN");
   const crosspostSubreddits = subreddits.filter((s) => s.kind === "CROSSPOST");
 

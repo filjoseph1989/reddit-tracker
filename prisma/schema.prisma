@@ -39,6 +39,7 @@ model RedditAccount {
   posts     Post[]   @relation("AccountPosts")
   // Crossposts whose original (untracked) post was made by this account.
   originals Post[]   @relation("OriginalAccount")
+  comments  Comment[]
   drafts    Draft[]
 
   @@unique([userId, username])
@@ -61,6 +62,7 @@ model Subreddit {
   createdAt DateTime       @default(now())
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   posts     Post[]
+  comments  Comment[]
   // A main subreddit links to the crosspost subreddits its posts get shared to.
   crosspostLinks SubredditLink[] @relation("MainLinks")
   mainLinks      SubredditLink[] @relation("CrosspostLinks")
@@ -102,6 +104,21 @@ model Post {
   @@unique([accountId, url])
   @@index([accountId, postedAt])
   @@map("posts")
+}
+
+model Comment {
+  id          String        @id @default(cuid())
+  accountId   String
+  subredditId String
+  url         String
+  commentedAt DateTime
+  createdAt   DateTime      @default(now())
+  account     RedditAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  subreddit   Subreddit     @relation(fields: [subredditId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, url])
+  @@index([accountId, commentedAt])
+  @@map("comments")
 }
 
 model Draft {
