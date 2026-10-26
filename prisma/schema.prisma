@@ -16,6 +16,7 @@ model User {
   accounts     RedditAccount[]
   subreddits   Subreddit[]
   drafts       Draft[]
+  prompts      Prompt[]
 
   @@map("users")
 }
@@ -120,4 +121,17 @@ model Draft {
 
   @@index([userId, createdAt])
   @@map("drafts")
+}
+
+model Prompt {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("prompts")
 }

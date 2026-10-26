@@ -280,6 +280,41 @@ export async function deleteDraft(draftId: string) {
   refresh();
 }
 
+// ---- Prompts ----
+
+function promptFields(form: FormData) {
+  const title = text(form, "title");
+  const content = String(form.get("content") ?? "").replace(/\s+$/, "");
+  if (!title) return { error: "Enter a title for the prompt." };
+  if (title.length > 200) return { error: "Keep the title under 200 characters." };
+  if (!content.trim()) return { error: "Enter the prompt text." };
+  return { title, content };
+}
+
+export async function createPrompt(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const fields = promptFields(form);
+  if ("error" in fields) return { error: fields.error };
+  const prompt = await db.prompt.create({ data: { userId: user.id, ...fields } });
+  redirect(`/prompts/${prompt.id}`);
+}
+
+export async function updatePrompt(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const prompt = await db.prompt.findFirst({ where: { id: text(form, "id"), userId: user.id } });
+  if (!prompt) return { error: "Prompt not found." };
+  const fields = promptFields(form);
+  if ("error" in fields) return { error: fields.error };
+  await db.prompt.update({ where: { id: prompt.id }, data: fields });
+  redirect(`/prompts/${prompt.id}`);
+}
+
+export async function deletePrompt(promptId: string) {
+  const user = await requireUser();
+  await db.prompt.deleteMany({ where: { id: promptId, userId: user.id } });
+  redirect("/prompts");
+}
+
 /**
  * When a crosspost is logged, link its subreddit to the main subreddit of the
  * same account's most recent original post (within the previous 24 hours).
