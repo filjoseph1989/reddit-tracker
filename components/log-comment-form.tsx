@@ -24,7 +24,7 @@ export function LogCommentForm({ accounts }: { accounts: { id: string; username:
         </select>
       )}
       <PostedAtInput />
-      <SubmitButton>Log comment</SubmitButton>
+      <SubmitButton className="btn-primary w-32">Log comment</SubmitButton>
     </ActionForm>
   );
 }
