@@ -53,3 +53,6 @@ skills-lock.json
 prompt.md
 query.result
 query.sql
+
+.docs
+.db-backup
