@@ -109,6 +109,47 @@ export async function deletePost(postId: string) {
   refresh();
 }
 
+// ---- Comments ----
+
+export async function addComment(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const account = await db.redditAccount.findFirst({ where: { id: text(form, "accountId"), userId: user.id } });
+  if (!account) return { error: "Pick one of your accounts." };
+
+  let parsed;
+  try {
+    parsed = parsePostUrl(text(form, "url"));
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const commentedAt = new Date(text(form, "postedAt"));
+  if (Number.isNaN(commentedAt.getTime())) return { error: "Enter when the comment was made." };
+  if (commentedAt.getTime() > Date.now() + 5 * 60_000) return { error: "Comment time can't be in the future." };
+
+  const subreddit = await db.subreddit.upsert({
+    where: { userId_name: { userId: user.id, name: parsed.subreddit.toLowerCase() } },
+    create: { userId: user.id, name: parsed.subreddit.toLowerCase(), displayName: parsed.subreddit },
+    update: {},
+  });
+
+  try {
+    await db.comment.create({
+      data: { accountId: account.id, subredditId: subreddit.id, url: parsed.url, commentedAt },
+    });
+  } catch (e) {
+    if (isUniqueViolation(e)) return { error: "That comment is already logged for this account." };
+    throw e;
+  }
+  refresh();
+}
+
+export async function deleteComment(commentId: string) {
+  const user = await requireUser();
+  await db.comment.deleteMany({ where: { id: commentId, account: { userId: user.id } } });
+  refresh();
+}
+
 // ---- Subreddits ----
 
 export async function classifySubreddit(_: FormState, form: FormData): Promise<FormState> {

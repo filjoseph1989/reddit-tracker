@@ -2,12 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConfirmSubmitButton, LocalTime, SafeStatus } from "@/components/client";
 import { RecentDraftsWidget, type SerializedDraft } from "@/components/drafts-client";
+import { CommentActivityBadge } from "@/components/comment-activity";
+import { LogCommentForm } from "@/components/log-comment-form";
 import { LogPostForm } from "@/components/log-post-form";
 import { requireUser } from "@/lib/auth";
 import { accountsWithSafety } from "@/lib/data";
 import { db } from "@/lib/db";
 import { RULES } from "@/lib/safety";
-import { deleteAccount, deletePost } from "../../actions";
+import { COMMENT_RULES } from "@/lib/comments";
+import { deleteAccount, deleteComment, deletePost } from "../../actions";
 
 export const instant = false;
 
@@ -37,7 +40,7 @@ export default async function AccountDetailPage({ params }: AccountPageProps) {
     notFound();
   }
 
-  const { safety } = account;
+  const { safety, commentActivity } = account;
 
   const serializedDrafts: SerializedDraft[] = accountDrafts.map((d) => ({
     id: d.id,
@@ -190,6 +193,63 @@ export default async function AccountDetailPage({ params }: AccountPageProps) {
         )}
       </div>
 
+      {/* Comment Activity */}
+      <div className="card space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 pb-4 dark:border-zinc-800">
+          <div>
+            <h2 className="text-base font-semibold">Comment Activity</h2>
+            <p className="muted text-xs">
+              Comments don&apos;t affect post timing. This flags a pace that could look like a bot or spam.
+            </p>
+          </div>
+          <CommentActivityBadge level={commentActivity.level} size="lg" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-lg bg-zinc-50 p-3.5 dark:bg-zinc-800/40">
+            <p className="muted text-xs">Last Hour</p>
+            <p className="mt-1 font-semibold text-sm">
+              {commentActivity.lastHour} <span className="muted font-normal">(busy at {COMMENT_RULES.busyPerHour})</span>
+            </p>
+          </div>
+          <div className="rounded-lg bg-zinc-50 p-3.5 dark:bg-zinc-800/40">
+            <p className="muted text-xs">Last 24 Hours</p>
+            <p className="mt-1 font-semibold text-sm">
+              {commentActivity.last24h} <span className="muted font-normal">(busy at {COMMENT_RULES.busyPer24h})</span>
+            </p>
+          </div>
+          <div className="rounded-lg bg-zinc-50 p-3.5 dark:bg-zinc-800/40">
+            <p className="muted text-xs">Last Comment</p>
+            <p className="mt-1 font-semibold text-sm">
+              {commentActivity.lastCommentAt ? <LocalTime iso={commentActivity.lastCommentAt.toISOString()} /> : "None yet"}
+            </p>
+          </div>
+          <div className="rounded-lg bg-zinc-50 p-3.5 dark:bg-zinc-800/40">
+            <p className="muted text-xs">Back to Normal</p>
+            <p className="mt-1 font-semibold text-sm">
+              {commentActivity.calmAt ? (
+                <LocalTime iso={commentActivity.calmAt.toISOString()} />
+              ) : (
+                <span className="text-emerald-600 dark:text-emerald-400">Already normal</span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {commentActivity.reasons.length > 0 && (
+          <ul className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+            {commentActivity.reasons.map((reason, i) => (
+              <li key={i}>• {reason}</li>
+            ))}
+          </ul>
+        )}
+
+        <div className="border-t border-zinc-100 pt-4 dark:border-zinc-800">
+          <h3 className="mb-2 text-sm font-semibold">Log a Comment for u/{account.username}</h3>
+          <LogCommentForm accounts={[{ id: account.id, username: account.username }]} />
+        </div>
+      </div>
+
       {/* Log Post Form pre-selected for this account */}
       <div className="card space-y-3">
         <div>
@@ -278,6 +338,63 @@ export default async function AccountDetailPage({ params }: AccountPageProps) {
                         <ConfirmSubmitButton
                           className="btn-danger text-xs"
                           confirmMessage="Delete this logged post record?"
+                        >
+                          Delete
+                        </ConfirmSubmitButton>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Comment History */}
+      <div className="card space-y-4">
+        <div>
+          <h2 className="text-base font-semibold">Comment History ({account.comments.length})</h2>
+          <p className="muted text-xs">All recorded comments for this account.</p>
+        </div>
+
+        {account.comments.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500 dark:border-zinc-800">
+            No comments logged yet for u/{account.username}.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500 dark:border-zinc-800">
+                <tr>
+                  <th className="py-2.5 pr-4 font-medium">Subreddit</th>
+                  <th className="py-2.5 pr-4 font-medium">Comment URL</th>
+                  <th className="py-2.5 pr-4 font-medium">Commented At</th>
+                  <th className="py-2.5 text-right font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                {account.comments.map((comment) => (
+                  <tr key={comment.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30">
+                    <td className="py-2.5 pr-4 font-semibold">r/{comment.subreddit.displayName}</td>
+                    <td className="py-2.5 pr-4 max-w-sm truncate">
+                      <a
+                        href={comment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link truncate block text-xs"
+                      >
+                        {comment.url}
+                      </a>
+                    </td>
+                    <td className="py-2.5 pr-4 muted text-xs whitespace-nowrap">
+                      <LocalTime iso={comment.commentedAt.toISOString()} />
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <form action={deleteComment.bind(null, comment.id)}>
+                        <ConfirmSubmitButton
+                          className="btn-danger text-xs"
+                          confirmMessage="Delete this logged comment record?"
                         >
                           Delete
                         </ConfirmSubmitButton>
