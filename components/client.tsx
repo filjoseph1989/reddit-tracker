@@ -173,6 +173,16 @@ export function SafeStatus({ iso, size = "sm" }: { iso: string | null; size?: "s
   );
 }
 
+/** Card that turns green while the account is safe to post from, flipping live as cooldowns end. */
+export function SafeCard({ iso, className = "", children }: { iso: string | null; className?: string; children: ReactNode }) {
+  const now = useNow();
+  const safe = now !== null && (!iso || new Date(iso).getTime() <= now.getTime());
+  const tone = safe
+    ? "border-emerald-300 bg-emerald-50/70 hover:border-emerald-400 dark:border-emerald-800/70 dark:bg-emerald-950/30 dark:hover:border-emerald-700"
+    : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700";
+  return <div className={`card transition ${tone} ${className}`}>{children}</div>;
+}
+
 /** datetime-local input that submits an ISO timestamp, so the server gets the viewer's timezone right. */
 export function PostedAtInput() {
   const now = useNow();
