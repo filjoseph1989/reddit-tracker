@@ -81,6 +81,20 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
         <h2 className="text-lg font-semibold">Your Reddit Accounts</h2>
       </div>
 
+      <div className="card mt-6">
+        <h3 className="text-sm font-semibold mb-2">Add Another Reddit Account</h3>
+        <ActionForm action={addAccount} className="flex flex-wrap gap-2">
+          <input
+            name="username"
+            type="text"
+            placeholder="Reddit username (e.g. u/my_other_account)"
+            className="input min-w-64 flex-1"
+            required
+          />
+          <SubmitButton>Add Account</SubmitButton>
+        </ActionForm>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         {sorted.map((account) => {
           const { safety, commentActivity } = account;
@@ -90,7 +104,6 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
               iso={safety.nextSafeAt?.toISOString() ?? null}
               className="flex flex-col justify-between">
               <div>
-                {/* Header: Username & Status */}
                 <div className="flex items-start justify-between gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800/80">
                   <div>
                     <Link
@@ -107,7 +120,6 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
                   <SafeStatus iso={safety.nextSafeAt?.toISOString() ?? null} />
                 </div>
 
-                {/* Key Stats */}
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="muted text-xs">Next safe post</p>
@@ -137,7 +149,6 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
                   </div>
                 </div>
 
-                {/* Comment pace */}
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2 text-xs dark:bg-zinc-800/40">
                   <span>
                     <span className="muted">Comments:</span>{" "}
@@ -147,7 +158,6 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
                   <CommentActivityBadge level={commentActivity.level} />
                 </div>
 
-                {/* Reasons / explanations */}
                 {safety.reasons.length > 0 && (
                   <div className="mt-3 rounded-lg bg-zinc-50 p-2.5 text-xs text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300">
                     <ul className="list-disc pl-4 space-y-1">
@@ -158,7 +168,6 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
                   </div>
                 )}
 
-                {/* Subreddit cooldowns preview */}
                 {safety.subredditCooldowns.length > 0 && (
                   <div className="mt-3">
                     <p className="muted text-xs mb-1 font-medium">Active community cooldowns (24h):</p>
@@ -167,8 +176,7 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
                         <span
                           key={sc.subreddit}
                           className="pill bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 text-xs"
-                          title={`Safe at ${sc.until.toLocaleString()}`}
-                        >
+                          title={`Safe at ${sc.until.toLocaleString()}`}>
                           r/{sc.subreddit}
                         </span>
                       ))}
@@ -177,7 +185,6 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
                 )}
               </div>
 
-              {/* Card footer */}
               <div className="mt-5 border-t border-zinc-100 pt-3 flex items-center justify-between dark:border-zinc-800/80">
                 <span className="muted text-xs">
                   {account.posts[0] ? (
@@ -190,29 +197,13 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
                 </span>
                 <Link
                   href={`/accounts/${account.id}`}
-                  className="text-xs font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
-                >
+                  className="text-xs font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400">
                   History & Details →
                 </Link>
               </div>
             </SafeCard>
           );
         })}
-      </div>
-
-      {/* Add another account form */}
-      <div className="card mt-6">
-        <h3 className="text-sm font-semibold mb-2">Add Another Reddit Account</h3>
-        <ActionForm action={addAccount} className="flex flex-wrap gap-2">
-          <input
-            name="username"
-            type="text"
-            placeholder="Reddit username (e.g. u/my_other_account)"
-            className="input min-w-64 flex-1"
-            required
-          />
-          <SubmitButton>Add Account</SubmitButton>
-        </ActionForm>
       </div>
     </div>
   );
