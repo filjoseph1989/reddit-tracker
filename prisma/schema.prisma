@@ -17,6 +17,7 @@ model User {
   subreddits   Subreddit[]
   drafts       Draft[]
   prompts      Prompt[]
+  clients      Client[]
 
   @@map("users")
 }
@@ -60,8 +61,11 @@ model Subreddit {
   displayName String
   // Null until the user answers "what kind of subreddit is this?"
   kind      SubredditKind?
+  // The client whose tasks get posted here; null when not assigned.
+  clientId  String?
   createdAt DateTime       @default(now())
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client    Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   posts     Post[]
   comments  Comment[]
   // A main subreddit links to the crosspost subreddits its posts get shared to.
@@ -69,7 +73,20 @@ model Subreddit {
   mainLinks      SubredditLink[] @relation("CrosspostLinks")
 
   @@unique([userId, name])
+  @@index([clientId])
   @@map("subreddits")
+}
+
+model Client {
+  id         String      @id @default(cuid())
+  userId     String
+  name       String
+  createdAt  DateTime    @default(now())
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subreddits Subreddit[]
+
+  @@unique([userId, name])
+  @@map("clients")
 }
 
 model SubredditLink {

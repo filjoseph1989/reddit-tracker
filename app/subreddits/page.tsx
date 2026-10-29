@@ -1,34 +1,60 @@
 import Link from "next/link";
 import { ActionForm, ConfirmSubmitButton, SubmitButton } from "@/components/client";
 import { requireUser } from "@/lib/auth";
+import { NO_CLIENT, filterByClient } from "@/lib/clients";
 import { db } from "@/lib/db";
-import { deleteSubreddit, linkSubreddits, unlinkSubreddits } from "../actions";
+import {
+  addClient,
+  deleteClient,
+  deleteSubreddit,
+  linkSubreddits,
+  setSubredditClient,
+  unlinkSubreddits,
+} from "../actions";
 
 export const instant = false;
 
-export default async function SubredditsPage() {
+type Client = { id: string; name: string };
+
+export default async function SubredditsPage({ searchParams }: PageProps<"/subreddits">) {
   const user = await requireUser();
+  const { client: clientParam } = await searchParams;
 
-  const subreddits = await db.subreddit.findMany({
-    where: { userId: user.id },
-    include: {
-      crosspostLinks: {
-        include: { crosspost: true },
-        orderBy: { createdAt: "desc" },
+  const [subreddits, clients] = await Promise.all([
+    db.subreddit.findMany({
+      where: { userId: user.id },
+      include: {
+        crosspostLinks: {
+          include: { crosspost: true },
+          orderBy: { createdAt: "desc" },
+        },
+        mainLinks: {
+          include: { main: true },
+          orderBy: { createdAt: "desc" },
+        },
+        posts: true,
       },
-      mainLinks: {
-        include: { main: true },
-        orderBy: { createdAt: "desc" },
-      },
-      posts: true,
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    }),
+    db.client.findMany({ where: { userId: user.id }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
 
-  // Subreddits you've only commented in have nothing to classify.
+  // Ignore a stale ?client= (e.g. a deleted client) rather than showing an empty page.
+  const filter = clientParam === NO_CLIENT || clients.some((c) => c.id === clientParam) ? String(clientParam) : undefined;
+  // Subreddits you've only commented in have nothing to classify. Shown under every filter,
+  // since a subreddit gets its client once it's classified.
   const unclassified = subreddits.filter((s) => !s.kind && s.posts.length > 0);
+  // The full lists feed the link pickers, since a crosspost can be shared across clients.
   const mainSubreddits = subreddits.filter((s) => s.kind === "MAIN");
   const crosspostSubreddits = subreddits.filter((s) => s.kind === "CROSSPOST");
+  const shownMain = filterByClient(mainSubreddits, filter);
+  const shownCrosspost = filterByClient(crosspostSubreddits, filter);
+
+  // Chip counts cover the classified subreddits, the ones listed below.
+  const classified = [...mainSubreddits, ...crosspostSubreddits];
+  const counts = new Map<string | null, number>();
+  for (const s of classified) counts.set(s.clientId, (counts.get(s.clientId) ?? 0) + 1);
+  const countFor = (clientId: string | null) => counts.get(clientId) ?? 0;
 
   return (
     <div className="space-y-8">
@@ -40,6 +66,58 @@ export default async function SubredditsPage() {
         <p className="muted text-sm mt-1">
           Manage your main original content subreddits, see where posts get crossposted, and keep communities organized.
         </p>
+      </div>
+
+      {/* Clients */}
+      <div className="card space-y-4">
+        <div>
+          <h2 className="text-base font-semibold">Clients</h2>
+          <p className="muted text-xs">
+            Group subreddits by the client whose tasks you post there, then filter this page to one client.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterChip href="/subreddits" active={!filter} label="All" count={classified.length} />
+          {clients.map((c) => (
+            <span key={c.id} className="inline-flex items-center gap-1">
+              <FilterChip
+                href={`/subreddits?client=${c.id}`}
+                active={filter === c.id}
+                label={c.name}
+                count={countFor(c.id)}
+              />
+              <form action={deleteClient.bind(null, c.id)}>
+                <ConfirmSubmitButton
+                  className="text-zinc-400 hover:text-red-600 dark:hover:text-red-400 text-xs font-bold leading-none cursor-pointer"
+                  confirmMessage={`Delete client ${c.name}? Its subreddits stay in the tracker, just without a client.`}
+                  title={`Delete client ${c.name}`}
+                >
+                  ×
+                </ConfirmSubmitButton>
+              </form>
+            </span>
+          ))}
+          {clients.length > 0 && (
+            <FilterChip
+              href={`/subreddits?client=${NO_CLIENT}`}
+              active={filter === NO_CLIENT}
+              label="No client"
+              count={countFor(null)}
+            />
+          )}
+        </div>
+
+        <ActionForm action={addClient} className="flex flex-wrap items-center gap-2">
+          <input
+            name="name"
+            className="input py-1 text-xs flex-1 min-w-48"
+            placeholder="Client name"
+            required
+            aria-label="Client name"
+          />
+          <SubmitButton className="btn-secondary text-xs py-1">Add client</SubmitButton>
+        </ActionForm>
       </div>
 
       {/* Unclassified Notice */}
@@ -80,17 +158,19 @@ export default async function SubredditsPage() {
             </p>
           </div>
           <span className="pill bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-            {mainSubreddits.length} Main
+            {shownMain.length} Main
           </span>
         </div>
 
-        {mainSubreddits.length === 0 ? (
+        {shownMain.length === 0 ? (
           <div className="card text-center py-8 text-sm text-zinc-500">
-            No main subreddits classified yet. Subreddits are automatically added when you log posts.
+            {filter
+              ? "No main subreddits for this client."
+              : "No main subreddits classified yet. Subreddits are automatically added when you log posts."}
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {mainSubreddits.map((main) => {
+            {shownMain.map((main) => {
               const linkedIds = new Set(main.crosspostLinks.map((l) => l.crosspostId));
               const availableToLink = crosspostSubreddits.filter((cp) => !linkedIds.has(cp.id));
 
@@ -129,6 +209,8 @@ export default async function SubredditsPage() {
                         </form>
                       </div>
                     </div>
+
+                    <ClientPicker subredditId={main.id} clientId={main.clientId} clients={clients} />
 
                     {/* Linked Crosspost Subreddits */}
                     <div className="mt-4">
@@ -203,17 +285,17 @@ export default async function SubredditsPage() {
             </p>
           </div>
           <span className="pill bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
-            {crosspostSubreddits.length} Crosspost
+            {shownCrosspost.length} Crosspost
           </span>
         </div>
 
-        {crosspostSubreddits.length === 0 ? (
+        {shownCrosspost.length === 0 ? (
           <div className="card text-center py-8 text-sm text-zinc-500">
-            No crosspost subreddits classified yet.
+            {filter ? "No crosspost subreddits for this client." : "No crosspost subreddits classified yet."}
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {crosspostSubreddits.map((cp) => (
+            {shownCrosspost.map((cp) => (
               <div key={cp.id} className="card flex flex-col justify-between border-zinc-200 dark:border-zinc-800">
                 <div>
                   {/* Header */}
@@ -248,6 +330,8 @@ export default async function SubredditsPage() {
                       </form>
                     </div>
                   </div>
+
+                  <ClientPicker subredditId={cp.id} clientId={cp.clientId} clients={clients} />
 
                   {/* Connected Main Subreddits */}
                   <div className="mt-4">
@@ -330,5 +414,45 @@ export default async function SubredditsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function FilterChip({ href, active, label, count }: { href: string; active: boolean; label: string; count: number }) {
+  const tone = active
+    ? "border-orange-300 bg-orange-100 text-orange-900 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-200"
+    : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
+  return (
+    <Link href={href} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${tone}`}>
+      {label}
+      <span className="muted">{count}</span>
+    </Link>
+  );
+}
+
+/** Assigns a subreddit to one of the user's clients, or to none. */
+function ClientPicker({ subredditId, clientId, clients }: { subredditId: string; clientId: string | null; clients: Client[] }) {
+  if (clients.length === 0) return null;
+  return (
+    <ActionForm action={setSubredditClient} className="mt-3 flex flex-wrap items-center gap-2">
+      <input type="hidden" name="subredditId" value={subredditId} />
+      <label className="text-xs font-medium muted" htmlFor={`client-${subredditId}`}>
+        Client
+      </label>
+      <select
+        key={clientId ?? ""}
+        id={`client-${subredditId}`}
+        name="clientId"
+        defaultValue={clientId ?? ""}
+        className="input py-1 text-xs flex-1"
+      >
+        <option value="">No client</option>
+        {clients.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+      <SubmitButton className="btn-secondary text-xs py-1">Set</SubmitButton>
+    </ActionForm>
   );
 }
