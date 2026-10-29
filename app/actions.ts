@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { endSession, requireUser, startSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { cleanClientName } from "@/lib/clients";
 import { parsePostUrl } from "@/lib/reddit";
 
 export type FormState = { error?: string } | undefined;
@@ -218,6 +219,59 @@ export async function unlinkSubreddits(mainId: string, crosspostId: string) {
 export async function deleteSubreddit(subredditId: string) {
   const user = await requireUser();
   await db.subreddit.deleteMany({ where: { id: subredditId, userId: user.id } });
+  refresh();
+}
+
+export async function setSubredditClient(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const clientId = text(form, "clientId");
+  if (clientId && !(await db.client.findFirst({ where: { id: clientId, userId: user.id } }))) {
+    return { error: "Pick one of your clients." };
+  }
+  let count;
+  try {
+    ({ count } = await db.subreddit.updateMany({
+      where: { id: text(form, "subredditId"), userId: user.id },
+      data: { clientId: clientId || null },
+    }));
+  } catch (e) {
+    // The client was deleted between the check above and this write.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      return { error: "Pick one of your clients." };
+    }
+    throw e;
+  }
+  if (!count) return { error: "That subreddit no longer exists." };
+  refresh();
+}
+
+// ---- Clients ----
+
+export async function addClient(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  let name;
+  try {
+    name = cleanClientName(text(form, "name"));
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const existing = await db.client.findFirst({
+    where: { userId: user.id, name: { equals: name, mode: "insensitive" } },
+  });
+  if (existing) return { error: `${existing.name} is already added.` };
+  try {
+    await db.client.create({ data: { userId: user.id, name } });
+  } catch (e) {
+    if (isUniqueViolation(e)) return { error: `${name} is already added.` };
+    throw e;
+  }
+  refresh();
+}
+
+/** Deletes the client; its subreddits stay, just unassigned. */
+export async function deleteClient(clientId: string) {
+  const user = await requireUser();
+  await db.client.deleteMany({ where: { id: clientId, userId: user.id } });
   refresh();
 }
 
