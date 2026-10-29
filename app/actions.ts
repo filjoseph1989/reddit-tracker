@@ -24,7 +24,8 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
 
   const user = await db.user.create({ data: { email, passwordHash: await bcrypt.hash(password, 12) } });
   await startSession(user.id);
-  redirect("/");
+  // A new user has no accounts yet: start where they add one.
+  redirect("/accounts");
 }
 
 export async function login(_: FormState, form: FormData): Promise<FormState> {
@@ -60,7 +61,7 @@ export async function addAccount(_: FormState, form: FormData): Promise<FormStat
 export async function deleteAccount(accountId: string) {
   const user = await requireUser();
   await db.redditAccount.deleteMany({ where: { id: accountId, userId: user.id } });
-  redirect("/");
+  redirect("/accounts");
 }
 
 // ---- Posts ----

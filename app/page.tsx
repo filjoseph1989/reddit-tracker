@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AccountsSection } from "@/components/accounts-section";
 import { ConfirmSubmitButton, CopyIconButton, LocalTime, TrashIcon } from "@/components/client";
 import { LogCommentForm } from "@/components/log-comment-form";
 import { LogPostForm } from "@/components/log-post-form";
@@ -120,7 +119,23 @@ export default async function HomePage() {
         </div>
       )}
 
-      <AccountsSection accounts={accounts} />
+      {/* Accounts Link */}
+      <Link
+        href="/accounts"
+        className="card flex items-center justify-between gap-4 transition hover:border-zinc-300 dark:hover:border-zinc-700"
+      >
+        <div>
+          <h2 className="text-base font-semibold">Your Reddit Accounts</h2>
+          <p className="muted text-xs">
+            {accounts.length > 0
+              ? `${readyCount} of ${accounts.length} safe to post. See each account's cooldown and activity.`
+              : "Add your Reddit accounts to start tracking safe posting intervals."}
+          </p>
+        </div>
+        <span className="text-sm font-medium link whitespace-nowrap">
+          {accounts.length > 0 ? "View accounts →" : "Add Account →"}
+        </span>
+      </Link>
 
       {/* Recent Activity Feed */}
       {recentPosts.length > 0 && (
