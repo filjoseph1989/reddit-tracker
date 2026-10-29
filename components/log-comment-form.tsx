@@ -1,7 +1,11 @@
 import { addComment } from "@/app/actions";
 import { ActionForm, PostedAtInput, SubmitButton } from "./client";
 
-/** Log a comment. Pass several accounts to show a picker, or one to log for that account. */
+/** 
+ * Log a comment. 
+ * 
+ * Pass several accounts to show a picker, or one to log for that account. 
+ */
 export function LogCommentForm({ accounts }: { accounts: { id: string; username: string }[] }) {
   if (accounts.length === 0) return null;
 
@@ -24,7 +28,7 @@ export function LogCommentForm({ accounts }: { accounts: { id: string; username:
         </select>
       )}
       <PostedAtInput />
-      <SubmitButton className="btn-primary w-32">Log comment</SubmitButton>
+      <SubmitButton className="btn-primary w-32">Log</SubmitButton>
     </ActionForm>
   );
 }

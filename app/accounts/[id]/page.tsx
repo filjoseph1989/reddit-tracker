@@ -60,7 +60,7 @@ export default async function AccountDetailPage({ params }: AccountPageProps) {
     <div className="space-y-8">
       {/* Breadcrumb & Navigation */}
       <div>
-        <Link href="/" className="text-sm font-medium link inline-flex items-center gap-1">
+        <Link href="/accounts" className="text-sm font-medium link inline-flex items-center gap-1">
           ← Back to all accounts
         </Link>
       </div>

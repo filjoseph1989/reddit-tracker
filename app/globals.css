@@ -41,7 +41,7 @@ body {
     @apply text-sm text-red-600 hover:underline dark:text-red-400;
   }
   .btn-icon {
-    @apply inline-flex items-center justify-center rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100;
+    @apply inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100;
   }
   .pill {
     @apply inline-block rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap;

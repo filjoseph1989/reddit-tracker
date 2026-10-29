@@ -99,7 +99,9 @@ export function TrashIcon() {
   );
 }
 
-/** Icon button that copies `text` to the clipboard and briefly shows a check. */
+/** 
+ * Icon button that copies `text` to the clipboard and briefly shows a check. 
+ */
 export function CopyIconButton({ text, title = "Copy link" }: { text: string; title?: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -119,14 +121,15 @@ export function CopyIconButton({ text, title = "Copy link" }: { text: string; ti
       onClick={handleCopy}
       title={copied ? "Copied!" : title}
       aria-label={title}
-      className={`btn-icon ${copied ? "text-emerald-600 dark:text-emerald-400" : ""}`}
-    >
+      className={`btn-icon ${copied ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
       {copied ? <CheckIcon /> : <CopyIcon />}
     </button>
   );
 }
 
-/** Current time, ticking every 30s. Null until mounted so server and client markup match. */
+/** 
+ * Current time, ticking every 30s. Null until mounted so server and client markup match. 
+ */
 function useNow() {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
@@ -140,7 +143,9 @@ function useNow() {
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-/** A timestamp in the viewer's own timezone. */
+/** 
+ * A timestamp in the viewer's own timezone. 
+ */
 export function LocalTime({ iso }: { iso: string }) {
   const now = useNow();
   return <time dateTime={iso}>{now ? dateFormat.format(new Date(iso)) : "…"}</time>;
@@ -153,7 +158,9 @@ export function formatDuration(ms: number) {
   return h ? `${h}h${m ? ` ${m}m` : ""}` : `${m}m`;
 }
 
-/** "Safe now" or a live countdown to the given time. */
+/** 
+ * "Safe now" or a live countdown to the given time. 
+ */
 export function SafeStatus({ iso, size = "sm" }: { iso: string | null; size?: "sm" | "lg" }) {
   const now = useNow();
   const textClass = size === "lg" ? "px-3.5 py-1 text-sm font-medium" : "px-2.5 py-0.5 text-xs font-medium";
@@ -173,7 +180,9 @@ export function SafeStatus({ iso, size = "sm" }: { iso: string | null; size?: "s
   );
 }
 
-/** Card that turns green while the account is safe to post from, flipping live as cooldowns end. */
+/** 
+ * Card that turns green while the account is safe to post from, flipping live as cooldowns end. 
+ */
 export function SafeCard({ iso, className = "", children }: { iso: string | null; className?: string; children: ReactNode }) {
   const now = useNow();
   const safe = now !== null && (!iso || new Date(iso).getTime() <= now.getTime());
@@ -183,7 +192,9 @@ export function SafeCard({ iso, className = "", children }: { iso: string | null
   return <div className={`card transition ${tone} ${className}`}>{children}</div>;
 }
 
-/** datetime-local input that submits an ISO timestamp, so the server gets the viewer's timezone right. */
+/** 
+ * datetime-local input that submits an ISO timestamp, so the server gets the viewer's timezone right. 
+ */
 export function PostedAtInput() {
   const now = useNow();
   const [value, setValue] = useState("");
