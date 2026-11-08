@@ -125,7 +125,8 @@ export async function addComment(_: FormState, form: FormData): Promise<FormStat
     return { error: (e as Error).message };
   }
 
-  const commentedAt = new Date(text(form, "postedAt"));
+  const rawCommentedAt = text(form, "postedAt") || text(form, "commentedAt");
+  const commentedAt = rawCommentedAt ? new Date(rawCommentedAt) : new Date();
   if (Number.isNaN(commentedAt.getTime())) return { error: "Enter when the comment was made." };
   if (commentedAt.getTime() > Date.now() + 5 * 60_000) return { error: "Comment time can't be in the future." };
 

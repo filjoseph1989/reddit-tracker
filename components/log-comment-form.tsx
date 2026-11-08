@@ -1,5 +1,5 @@
 import { addComment } from "@/app/actions";
-import { ActionForm, PostedAtInput, SubmitButton } from "./client";
+import { ActionForm, SubmitButton } from "./client";
 
 /** 
  * Log a comment. 
@@ -7,7 +7,13 @@ import { ActionForm, PostedAtInput, SubmitButton } from "./client";
  * Pass several accounts to show a picker, or one to log for that account. 
  */
 export function LogCommentForm({ accounts }: { accounts: { id: string; username: string }[] }) {
-  if (accounts.length === 0) return null;
+  if (accounts.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+        Add a Reddit account first to start logging comments.
+      </div>
+    );
+  }
 
   return (
     <ActionForm action={addComment} className="flex flex-wrap items-center gap-2">
@@ -27,7 +33,6 @@ export function LogCommentForm({ accounts }: { accounts: { id: string; username:
           ))}
         </select>
       )}
-      <PostedAtInput />
       <SubmitButton className="btn-primary w-32">Log</SubmitButton>
     </ActionForm>
   );

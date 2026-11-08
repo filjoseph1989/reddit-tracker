@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { LogCommentForm } from "@/components/log-comment-form";
 import { LogPostForm } from "@/components/log-post-form";
-import { RecentPosts } from "@/components/recent-posts";
 import { requireUser } from "@/lib/auth";
 import { accountsWithSafety } from "@/lib/data";
 import { db } from "@/lib/db";
@@ -10,19 +9,15 @@ export const instant = false;
 
 export default async function HomePage() {
   const user = await requireUser();
-  const [accounts, unclassifiedSubreddits, recentPosts] = await Promise.all([
+  const [accounts, unclassifiedSubreddits, postCount, commentCount] = await Promise.all([
     accountsWithSafety(user.id),
     db.subreddit.findMany({
       // Only subreddits with posts need classifying; comment-only ones don't.
       where: { userId: user.id, kind: null, posts: { some: {} } },
       orderBy: { createdAt: "desc" },
     }),
-    db.post.findMany({
-      where: { account: { userId: user.id } },
-      orderBy: { postedAt: "desc" },
-      take: 10,
-      include: { account: true, subreddit: true },
-    }),
+    db.post.count({ where: { account: { userId: user.id } } }),
+    db.comment.count({ where: { account: { userId: user.id } } }),
   ]);
 
   const readyCount = accounts.filter((a) => a.safety.safeNow).length;
@@ -136,7 +131,42 @@ export default async function HomePage() {
         </span>
       </Link>
 
-      <RecentPosts posts={recentPosts} />
+      {/* Activity Links */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href="/posts"
+          className="card flex items-center justify-between gap-4 transition hover:border-zinc-300 dark:hover:border-zinc-700"
+        >
+          <div>
+            <h2 className="text-base font-semibold">Posts Activity</h2>
+            <p className="muted text-xs">
+              {postCount > 0
+                ? `${postCount} logged ${postCount === 1 ? "post" : "posts"} across your accounts. View history, copy links, and manage posts.`
+                : "View post activity across your accounts."}
+            </p>
+          </div>
+          <span className="text-sm font-medium link whitespace-nowrap">
+            View posts →
+          </span>
+        </Link>
+
+        <Link
+          href="/comments"
+          className="card flex items-center justify-between gap-4 transition hover:border-zinc-300 dark:hover:border-zinc-700"
+        >
+          <div>
+            <h2 className="text-base font-semibold">Comments Activity</h2>
+            <p className="muted text-xs">
+              {commentCount > 0
+                ? `${commentCount} logged ${commentCount === 1 ? "comment" : "comments"} across your accounts. View history and monitor pace.`
+                : "View comment activity across your accounts."}
+            </p>
+          </div>
+          <span className="text-sm font-medium link whitespace-nowrap">
+            View comments →
+          </span>
+        </Link>
+      </div>
     </div>
   );
 }
