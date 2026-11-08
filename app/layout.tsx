@@ -34,6 +34,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <span className="text-orange-600">●</span> Post Spacer
             </Link>
             <Link href="/accounts" className="text-sm hover:underline">Accounts</Link>
+            <Link href="/posts" className="text-sm hover:underline">Posts</Link>
+            <Link href="/comments" className="text-sm hover:underline">Comments</Link>
             <Link href="/subreddits" className="text-sm hover:underline">Subreddits</Link>
             <Link href="/drafts" className="text-sm hover:underline">Drafts</Link>
             <Link href="/prompts" className="text-sm hover:underline">Prompts</Link>
